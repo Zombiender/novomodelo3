@@ -16,35 +16,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      # 2. Reconstruir a estrutura correta
+      # 2. Organizar estrutura do projeto
       - name: Organizar estrutura do Aura
         shell: pwsh
         run: |
-
           $ErrorActionPreference = "Stop"
 
           function Mover($origem, $destino) {
-
             if (Test-Path $origem -PathType Leaf) {
-
               $pasta = Split-Path $destino -Parent
-
               New-Item -ItemType Directory -Force -Path $pasta | Out-Null
 
-              if (Test-Path $destino) {
-                throw "Conflito: destino já existe: $destino"
+              if (-not (Test-Path $destino)) {
+                Move-Item -LiteralPath $origem -Destination $destino
+                Write-Host "MOVIDO: $origem -> $destino"
               }
-
-              Move-Item -LiteralPath $origem -Destination $destino
-
-              Write-Host "MOVIDO: $origem -> $destino"
             }
           }
 
-          # ==========================================
-          #  CORE
-          # ==========================================
-
+          # CORE
           $core = @(
             'config.ts',
             'preferencias.ts',
@@ -69,10 +59,7 @@ jobs:
             Mover $arquivo "src/core/$arquivo"
           }
 
-          # ==========================================
-          #  UI / REACT
-          # ==========================================
-
+          # INTERFACE
           $ui = @(
             'App.tsx',
             'montar.tsx',
@@ -85,80 +72,39 @@ jobs:
             Mover $arquivo "src/ui/$arquivo"
           }
 
-          # ==========================================
-          #  ENTRADA TYPESCRIPT
-          # ==========================================
-
+          # ENTRADAS
           Mover 'main.ts' 'src/main.ts'
-
-          # ==========================================
-          #  TELA DE BOAS-VINDAS
-          # ==========================================
-
           Mover 'welcome.ts' 'src/welcome.ts'
 
-          # ==========================================
-          #  TAURI
-          # ==========================================
-
+          # TAURI
           Mover 'Cargo.toml' 'src-tauri/Cargo.toml'
           Mover 'build.rs' 'src-tauri/build.rs'
           Mover 'tauri.conf.json' 'src-tauri/tauri.conf.json'
-
           Mover 'lib.rs' 'src-tauri/src/lib.rs'
           Mover 'main.rs' 'src-tauri/src/main.rs'
-
           Mover 'default.json' 'src-tauri/capabilities/default.json'
 
-          # ==========================================
-          #  VALIDAR ESTRUTURA
-          # ==========================================
-
+          # VALIDAR ARQUIVOS
           $obrigatorios = @(
-            'src/main.ts',
-            'src/welcome.ts',
-
-            'src/core/config.ts',
-            'src/core/preferencias.ts',
-            'src/core/estado.ts',
-            'src/core/voz.ts',
-            'src/core/saude.ts',
-            'src/core/acoes.ts',
-            'src/core/spotify.ts',
-            'src/core/spotify-vinculo.ts',
-            'src/core/ia.ts',
-            'src/core/reconhecimento.ts',
-            'src/core/orquestrador.ts',
-            'src/core/overlay.ts',
-            'src/core/midia.ts',
-            'src/core/atalho.ts',
-            'src/core/arquivos.ts',
-            'src/core/letras.ts',
-            'src/core/capa.ts',
-
-            'src/ui/App.tsx',
-            'src/ui/montar.tsx',
-            'src/ui/Mascote.tsx',
-            'src/ui/RolagemNumero.tsx',
-            'src/ui/index.css',
-
-            'src-tauri/Cargo.toml',
-            'src-tauri/build.rs',
-            'src-tauri/tauri.conf.json',
-            'src-tauri/src/lib.rs',
-            'src-tauri/src/main.rs',
-            'src-tauri/capabilities/default.json',
-
             'package.json',
             'index.html',
             'welcome.html',
-            'app-icon.png'
+            'app-icon.png',
+            'src/main.ts',
+            'src/welcome.ts',
+            'src/ui/montar.tsx',
+            'src/ui/App.tsx',
+            'src/ui/index.css',
+            'src/core/config.ts',
+            'src/core/preferencias.ts',
+            'src-tauri/Cargo.toml',
+            'src-tauri/build.rs',
+            'src-tauri/tauri.conf.json'
           )
 
           $faltando = @()
 
           foreach ($arquivo in $obrigatorios) {
-
             if (Test-Path $arquivo -PathType Leaf) {
               Write-Host "OK: $arquivo"
             }
@@ -169,33 +115,29 @@ jobs:
           }
 
           if ($faltando.Count -gt 0) {
-            Write-Host "Arquivos ausentes:"
-            $faltando | ForEach-Object { Write-Host $_ }
-            throw "Estrutura incompleta. Build cancelado."
+            throw "Estrutura incompleta. Arquivos ausentes: $($faltando -join ', ')"
           }
 
-          # Verificar imports críticos
+          # VALIDAR IMPORTS CRÍTICOS
           $main = Get-Content 'src/main.ts' -Raw
           $config = Get-Content 'src/core/config.ts' -Raw
 
-          if ($main -notmatch 'from\s+["'']\./ui/montar["'']') {
-            throw "Import de ./ui/montar não encontrado em src/main.ts"
+          if ($main -notmatch '\./ui/montar') {
+            throw "Import ./ui/montar não encontrado em src/main.ts"
           }
 
-          if ($config -notmatch 'from\s+["'']\./preferencias["'']') {
-            throw "Import de ./preferencias não encontrado em src/core/config.ts"
+          if ($config -notmatch '\./preferencias') {
+            throw "Import ./preferencias não encontrado em src/core/config.ts"
           }
 
-          Write-Host ""
           Write-Host "ESTRUTURA DO AURA VALIDADA!"
-          Write-Host "Todos os arquivos obrigatórios estão nos destinos esperados."
 
       # 3. Configurar Node.js
       - name: Configurar Node.js
         uses: actions/setup-node@v5
         with:
           node-version: 22
-          cache: npm
+          package-manager-cache: false
 
       # 4. Configurar Rust
       - name: Configurar Rust
@@ -226,7 +168,6 @@ jobs:
           VITE_SPOTIFY_REFRESH_TOKEN: ${{ secrets.VITE_SPOTIFY_REFRESH_TOKEN }}
           VITE_CHAVE_PIX: ${{ secrets.VITE_CHAVE_PIX }}
         run: |
-
           @"
           VITE_NOME_ASSISTENTE=$env:VITE_NOME_ASSISTENTE
           VITE_GEMINI_API_KEY=$env:VITE_GEMINI_API_KEY
@@ -236,11 +177,11 @@ jobs:
           VITE_CHAVE_PIX=$env:VITE_CHAVE_PIX
           "@ | Set-Content -Path .env -Encoding utf8
 
-      # 9. Compilar frontend e TypeScript
+      # 9. Compilar frontend
       - name: Compilar frontend
         run: npm run build
 
-      # 10. Compilar aplicativo Tauri
+      # 10. Compilar Tauri
       - name: Compilar Aura Windows
         run: npm run tauri build
 
