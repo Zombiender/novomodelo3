@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>TextPressure HELLO! & Gatinho Interativo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Flex:opsz,slnt,wdth,wght@8..144,-10..0,25..151,100..1000&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --spring-snappy: cubic-bezier(0.22, 1.25, 0.36, 1);
+      --spring-fluid: cubic-bezier(0.16, 1, 0.3, 1);
+      --surface-glass: rgba(255, 255, 255, 0.64);
+      --glass-stroke: rgba(255, 255, 255, 0.80);
+      --text-primary: #1D1D1F;
+      --text-secondary: rgba(29, 29, 31, 0.60);
+      --stroke-color: #ff5a1f;
+      --stroke-width: 3px;
+    }
+
+    .dark {
+      --surface-glass: rgba(18, 19, 26, 0.72);
+      --glass-stroke: rgba(255, 255, 255, 0.16);
+      --text-primary: #F5F5F7;
+      --text-secondary: rgba(245, 245, 247, 0.62);
+      --stroke-color: #22B8CF;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text-primary);
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    /* Wallpapers estilo macOS Sequoia */
+    .wallpaper-light {
+      background: radial-gradient(circle at 20% 20%, #e0e7ff 0%, #f3e8ff 48%, #ffe4e6 100%);
+    }
+    .wallpaper-dark {
+      background: radial-gradient(circle at 25% 15%, #1e1b4b 0%, #0f172a 55%, #09090b 100%);
+    }
+
+    /* Material Liquid Glass */
+    .liquid-glass {
+      background: var(--surface-glass);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1px solid var(--glass-stroke);
+      box-shadow:
+        0 14px 36px -8px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0.5px 0 rgba(255, 255, 255, 0.48);
+    }
+
+    .dark .liquid-glass {
+      box-shadow:
+        0 18px 44px -10px rgba(0, 0, 0, 0.62),
+        inset 0 1px 0.5px 0 rgba(255, 255, 255, 0.18);
+    }
+
+    /* Tipografia TextPressure fiel ao React Bits */
+    .text-pressure-title {
+      font-family: 'Roboto Flex', sans-serif;
+      text-transform: uppercase;
+      font-size: clamp(72px, 17.5vw, 210px);
+      line-height: 0.9;
+      margin: 0;
+      text-align: center;
+      white-space: nowrap;
+      font-weight: 100;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      cursor: pointer;
+      position: relative;
+      z-index: 15;
+    }
+
+    .text-pressure-title span {
+      display: inline-block;
+      position: relative;
+      font-variation-settings: 'wght' 100, 'wdth' 25, 'slnt' 0;
+      will-change: font-variation-settings, transform;
+    }
+
+    .text-pressure-title.is-stroke span {
+      color: transparent !important;
+      -webkit-text-stroke-width: var(--stroke-width);
+      -webkit-text-stroke-color: var(--stroke-color);
+    }
+
+    /* Canvas Fullscreen: alterna z-index (8 atrás do texto -> 25 na frente após o salto) */
+    #cat-stage-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 8;
+      pointer-events: none;
+    }
+
+    /* Hitbox interativa gigante que acompanha o gato */
+    #cat-hitbox {
+      position: fixed;
+      width: 170px;
+      height: 170px;
+      border-radius: 999px;
+      z-index: 30;
+      cursor: grab;
+      transform: translate(-50%, -50%);
+      touch-action: none;
+      pointer-events: none;
+    }
+    #cat-hitbox:active {
+      cursor: grabbing;
+    }
+
+    /* Cartão de Onboarding Liquid Glass */
+    .onboarding-card {
+      opacity: 0;
+      transform: translateY(28px) scale(0.96);
+      pointer-events: none;
+      transition:
+        opacity 0.65s var(--spring-fluid),
+        transform 0.65s var(--spring-snappy);
+    }
+    .onboarding-card.is-visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-thumb { background: rgba(128, 128, 128, 0.32); border-radius: 999px; }
+  </style>
+</head>
+<body class="wallpaper-light transition-colors duration-500 h-screen w-screen flex flex-col justify-between relative">
+
+  <!-- Barra Superior Minimalista (Rever Entrada & Tema) -->
+  <header class="w-full flex items-center justify-between gap-2 px-4 pt-3.5 z-40">
+    <button id="btn-replay-intro" class="liquid-glass px-3.5 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 active:scale-95 transition">
+      <span>↺</span>
+      <span>Rever entrada</span>
+    </button>
+
+    <div class="flex items-center gap-1.5">
+      <button id="btn-stroke" class="liquid-glass px-3 py-1.5 rounded-full text-xs font-medium active:scale-95 transition">
+        ✏️ Contorno
+      </button>
+      <button id="btn-theme" class="liquid-glass px-3.5 py-1.5 rounded-full text-xs font-medium active:scale-95 transition">
+        🌙 Escuro
+      </button>
+    </div>
+  </header>
+
+  <!-- PALCO CENTRAL: TEXTO GIGANTE + CARTÃO DE NOME DO ASSISTENTE -->
+  <main id="stage-area" class="flex-1 flex flex-col items-center justify-center px-4 sm:px-10 relative">
+    <!-- Espaçador superior para acomodar o gatinho gigante acima do texto -->
+    <div class="h-24 sm:h-32 shrink-0"></div>
+
+    <!-- Tipografia Interativa TextPressure -->
+    <div id="pressure-container" class="w-full max-w-5xl relative flex items-center justify-center py-2">
+      <h1 id="pressure-title" class="text-pressure-title" aria-label="Hello!"></h1>
+    </div>
+
+    <!-- Estágio 3: Cartão Compacto Liquid Glass para Escolher o Nome do Assistente -->
+    <section id="onboarding-card" class="onboarding-card w-full max-w-md mt-6 sm:mt-8 z-30">
+      <div class="liquid-glass rounded-[30px] p-5 sm:p-6 shadow-2xl space-y-4">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <span class="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider opacity-60">
+              <span id="status-led" class="w-2 h-2 rounded-full bg-[#28CD41]"></span>
+              Configuração Inicial
+            </span>
+            <h2 id="card-heading" class="text-base sm:text-lg font-bold tracking-tight mt-0.5">
+              Como você quer chamar seu assistente?
+            </h2>
+          </div>
+
+          <!-- Seletor de Cor do Gatinho -->
+          <div id="color-pills" class="flex items-center gap-1.5 bg-black/5 dark:bg-white/10 p-1 rounded-full shrink-0" title="Cor do mascote">
+            <!-- Bolinhas injetadas via JS -->
+          </div>
+        </div>
+
+        <!-- Sugestões Rápidas -->
+        <div class="flex flex-wrap gap-1.5" id="name-suggestions">
+          <button type="button" data-name="Pixel" class="name-chip text-xs font-medium px-3 py-1.5 rounded-full bg-white/60 dark:bg-white/10 hover:bg-white dark:hover:bg-white/20 transition active:scale-95">✨ Pixel</button>
+          <button type="button" data-name="Nova" class="name-chip text-xs font-medium px-3 py-1.5 rounded-full bg-white/60 dark:bg-white/10 hover:bg-white dark:hover:bg-white/20 transition active:scale-95">🚀 Nova</button>
+          <button type="button" data-name="Astro" class="name-chip text-xs font-medium px-3 py-1.5 rounded-full bg-white/60 dark:bg-white/10 hover:bg-white dark:hover:bg-white/20 transition active:scale-95">🪐 Astro</button>
+          <button type="button" data-name="Lumi" class="name-chip text-xs font-medium px-3 py-1.5 rounded-full bg-white/60 dark:bg-white/10 hover:bg-white dark:hover:bg-white/20 transition active:scale-95">💡 Lumi</button>
+        </div>
+
+        <!-- Campo de Nome -->
+        <form id="name-form" class="flex items-center gap-2">
+          <input id="assistant-name-input" type="text" maxlength="20" placeholder="Digite o nome do assistente..."
+            class="flex-1 text-sm px-4 py-3 rounded-[18px] bg-white/75 dark:bg-white/10 border border-white/60 dark:border-white/15 focus:outline-none focus:ring-2 focus:ring-[#007AFF]/50 placeholder:opacity-50" />
+          <button type="submit" class="px-5 py-3 rounded-[18px] bg-[#007AFF] text-white text-sm font-semibold shadow-md hover:brightness-110 active:scale-95 transition shrink-0">
+            Continuar
+          </button>
+        </form>
+
+        <!-- Barra de Confirmação após salvar o nome -->
+        <div id="confirmed-bar" class="hidden pt-1 flex items-center justify-between gap-2 text-xs">
+          <span class="opacity-75">Arraste o mascote para cima ou para baixo das letras!</span>
+          <button type="button" id="btn-edit-name" class="text-[#007AFF] font-semibold hover:underline shrink-0">Alterar nome</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="h-4 shrink-0"></div>
+
+  <!-- Canvas Fullscreen para o Gatinho Gigante e Nuvens de Poeira -->
+  <canvas id="cat-stage-canvas"></canvas>
+
+  <!-- Hitbox Interativa que segue o Gatinho -->
+  <div id="cat-hitbox" title="Arraste para cima ou baixo das letras, ou toque para interagir"></div>
+
+  <script>
+    // =========================================================================
+    // 1. CONFIGURAÇÃO DE CORES, TEXTOS E ESTADO DO MASCOTE
+    // =========================================================================
+    const ACCENTS = [
+      { name: 'Coral', light: '#FF6B6B', dark: '#FF7B7B' },
+      { name: 'Lavanda', light: '#845EF7', dark: '#A78BFA' },
+      { name: 'Safira', light: '#007AFF', dark: '#38BDF8' },
+      { name: 'Menta', light: '#20C997', dark: '#34D399' }
+    ];
+
+    let isDark = false;
+    let accentIndex = 0;
+    let currentState = 'idle';
+    let isStroke = false;
+    let assistantName = '';
+    let stateTimer = 0;
+    let nextBlinkTime = 2.4;
+
+    // Estágios da entrada: 'waiting' -> 'poof' -> 'emerging' -> 'landed'
+    let introStage = 'waiting';
+    let introElapsed = 0;
+
+    // Partículas da animação estilo "poof" / nuvem de bolhas ao aparecer
+    let poofParticles = [];
+
+    // =========================================================================
+    // 2. MOTOR TEXTPRESSURE (FÍSICA DA FONTE VARIÁVEL ROBOTO FLEX)
+    // =========================================================================
+    const RIPPLE_LIFE = 1.3;
+    const MAX_RIPPLES = 6;
+    const WAVE_PERIOD = 3.2;
+
+    const pressureTitle = document.getElementById('pressure-title');
+    const pressureContainer = document.getElementById('pressure-container');
+    let letterSpans = [];
+    const ripples = [];
+    const cursor = { x: window.innerWidth / 2, y: window.innerHeight / 2, seen: false };
+    const smoothMouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+
+    const clamp01 = v => Math.min(1, Math.max(0, v));
+    const dist2D = (a, b) => Math.hypot(b.x - a.x, b.y - a.y);
+
+    function buildTextSpans(text) {
+      pressureTitle.innerHTML = '';
+      letterSpans = Array.from(text).map((char, idx) => {
+        const span = document.createElement('span');
+        span.textContent = char;
+        span.dataset.char = char;
+        span.dataset.index = idx;
+        pressureTitle.appendChild(span);
+        return span;
+      });
+    }
+    buildTextSpans('HELLO!');
+
+    function spawnRipple(x, y) {
+      ripples.push({ x, y, start: performance.now() });
+      if (ripples.length > MAX_RIPPLES) ripples.shift();
+    }
+
+    function getIdlePressure(position, clock, spread) {
+      const crest = 0.5 + 0.5 * Math.cos(Math.PI * 2 * (position / spread - clock / WAVE_PERIOD));
+      return crest * crest;
+    }
+
+    function getRipplePressure(point, now, spanWidth) {
+      const band = Math.max(spanWidth * 0.16, 42);
+      let total = 0;
+      for (const r of ripples) {
+        const age = (now - r.start) / 1000;
+        if (age <= 0 || age >= RIPPLE_LIFE) continue;
+        const offset = (dist2D(r, point) - age * spanWidth * 1.25) / band;
+        if (offset <= -1 || offset >= 1) continue;
+        const fade = 1 - age / RIPPLE_LIFE;
+        const swell = (1 - offset * offset) ** 2 * fade * fade * Math.min(1, age / 0.06);
+        total = 1 - (1 - total) * (1 - swell);
+      }
+      return total;
+    }
+
+    // =========================================================================
+    // 3. FÍSICA DO GATINHO GIGANTE (POOF + SALTO DE TRÁS + POUSO TOPO/BASE)
+    // =========================================================================
+    const catCanvas = document.getElementById('cat-stage-canvas');
+    const ctx = catCanvas.getContext('2d');
+    const catHitbox = document.getElementById('cat-hitbox');
+    const onboardingCard = document.getElementById('onboarding-card');
+
+    const catPhysics = {
+      x: window.innerWidth / 2,
+      y: window.innerHeight * 0.5,
+      vx: 0,
+      vy: 0,
+      perchedIndex: 2, // Letra 'L'
+      perchSide: 'top', // 'top' (em cima das letras) ou 'bottom' (embaixo das letras)
+      isDragging: false,
+      dragOffsetX: 0,
+      dragOffsetY: 0,
+      jumpHeight: 0,
+      waveSurfTilt: 0,
+      scaleMultiplier: 0 // Começa em 0 até estourar a nuvem de bolhas/poeira
+    };
+
+    const anim = {
+      eyeX: 0, eyeY: 0,
+      faceX: 0, faceY: 0,
+      earX: 0, earY: 0,
+      headScaleX: 1, headScaleY: 1,
+      headOffsetY: 0, headTilt: 0,
+      eyeOpen: 1, eyeScale: 1,
+      earAngleL: 0, earAngleR: 0,
+      mouthOpen: 0, mouthWidth: 1,
+      pawLeftY: 0, pawRightY: 0
+    };
+
+    function spawnPoofCloud(cx, cy) {
+      poofParticles = [];
+      const count = 16;
+      for (let i = 0; i < count; i++) {
+        const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.35;
+        const speed = 55 + Math.random() * 95;
+        poofParticles.push({
+          x: cx + Math.cos(angle) * 14,
+          y: cy + Math.sin(angle) * 14,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 18,
+          radius: 18 + Math.random() * 22,
+          life: 0,
+          maxLife: 0.55 + Math.random() * 0.25
+        });
+      }
+    }
+
+    function setCatState(newState, duration = 0) {
+      currentState = newState;
+      stateTimer = duration;
+    }
+
+    function startOnboardingSequence() {
+      introStage = 'waiting';
+      introElapsed = 0;
+      catPhysics.perchedIndex = 2;
+      catPhysics.perchSide = 'top';
+      catPhysics.scaleMultiplier = 0;
+      catPhysics.jumpHeight = 0;
+      poofParticles = [];
+
+      // Começa atrás do texto (z-index 8)
+      catCanvas.style.zIndex = '8';
+      catHitbox.style.pointerEvents = 'none';
+      onboardingCard.classList.remove('is-visible');
+      setCatState('idle');
+
+      const titleRect = pressureTitle.getBoundingClientRect();
+      catPhysics.x = titleRect.left + titleRect.width * 0.5;
+      catPhysics.y = titleRect.top + titleRect.height * 0.55;
+    }
+
+    // =========================================================================
+    // 4. CONTROLES DA UI (SELETOR DE CORES, NOME DO ASSISTENTE E TEMA)
+    // =========================================================================
+    const colorPillsContainer = document.getElementById('color-pills');
+    function renderColorPills() {
+      colorPillsContainer.innerHTML = '';
+      ACCENTS.forEach((acc, idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.title = acc.name;
+        const hex = isDark ? acc.dark : acc.light;
+        btn.className = `w-5 h-5 rounded-full transition-transform active:scale-90 ${idx === accentIndex ? 'ring-2 ring-offset-2 ring-[#007AFF] dark:ring-offset-slate-900 scale-110' : 'opacity-75 hover:opacity-100'}`;
+        btn.style.backgroundColor = hex;
+        btn.addEventListener('click', () => {
+          accentIndex = idx;
+          renderColorPills();
+          // Pequeno pulinho de alegria mantendo a cor escolhida visível
+          catPhysics.jumpHeight = 16;
+          setCatState('excited', 0.9);
+          spawnRipple(catPhysics.x, catPhysics.y);
+        });
+        colorPillsContainer.appendChild(btn);
+      });
+    }
+    renderColorPills();
+
+    const nameInput = document.getElementById('assistant-name-input');
+    const nameForm = document.getElementById('name-form');
+    const cardHeading = document.getElementById('card-heading');
+    const confirmedBar = document.getElementById('confirmed-bar');
+
+    function confirmAssistantName(rawName) {
+      const clean = rawName.trim();
+      if (!clean) {
+        nameInput.focus();
+        setCatState('error', 0.9);
+        return;
+      }
+      assistantName = clean;
+      nameInput.value = clean;
+      // Ponte com o app: salva o nome e minimiza esta janela (ver src/welcome.ts)
+      window.__aoConfirmarNome?.(clean);
+      cardHeading.textContent = `Olá! Eu sou ${assistantName} 🐾`;
+      nameForm.classList.add('hidden');
+      confirmedBar.classList.remove('hidden');
+      catPhysics.jumpHeight = 28;
+      setCatState('excited', 1.4);
+      spawnRipple(catPhysics.x, catPhysics.y);
+    }
+
+    document.querySelectorAll('.name-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        confirmAssistantName(chip.dataset.name);
+      });
+    });
+
+    nameForm.addEventListener('submit', e => {
+      e.preventDefault();
+      confirmAssistantName(nameInput.value);
+    });
+
+    document.getElementById('btn-edit-name').addEventListener('click', () => {
+      confirmedBar.classList.add('hidden');
+      nameForm.classList.remove('hidden');
+      cardHeading.textContent = 'Como você quer chamar seu assistente?';
+      nameInput.focus();
+      setCatState('listening', 1.2);
+    });
+
+    document.getElementById('btn-replay-intro').addEventListener('click', startOnboardingSequence);
+
+    document.getElementById('btn-stroke').addEventListener('click', e => {
+      isStroke = !isStroke;
+      pressureTitle.classList.toggle('is-stroke', isStroke);
+      e.currentTarget.style.background = isStroke ? '#007AFF' : '';
+      e.currentTarget.style.color = isStroke ? '#FFFFFF' : '';
+    });
+
+    document.getElementById('btn-theme').addEventListener('click', e => {
+      isDark = !isDark;
+      document.documentElement.classList.toggle('dark', isDark);
+      document.body.classList.toggle('wallpaper-dark', isDark);
+      document.body.classList.toggle('wallpaper-light', !isDark);
+      e.currentTarget.textContent = isDark ? '☀️ Claro' : '🌙 Escuro';
+      renderColorPills();
+    });
+
+    // =========================================================================
+    // 5. INTERAÇÕES DE PONTEIRO: ARRASTAR PARA TOPO OU BASE DO TEXTO
+    // =========================================================================
+    function updateCursor(x, y) {
+      cursor.x = x;
+      cursor.y = y;
+      cursor.seen = true;
+    }
+
+    window.addEventListener('mousemove', e => {
+      updateCursor(e.clientX, e.clientY);
+      if (catPhysics.isDragging) {
+        catPhysics.x = e.clientX - catPhysics.dragOffsetX;
+        catPhysics.y = e.clientY - catPhysics.dragOffsetY;
+      }
+    });
+
+    window.addEventListener('touchmove', e => {
+      const t = e.touches[0];
+      if (!t) return;
+      updateCursor(t.clientX, t.clientY);
+      if (catPhysics.isDragging) {
+        catPhysics.x = t.clientX - catPhysics.dragOffsetX;
+        catPhysics.y = t.clientY - catPhysics.dragOffsetY;
+      }
+    }, { passive: true });
+
+    // Clicar em qualquer letra faz o gatinho pular até ela (mantendo topo ou base)
+    pressureContainer.addEventListener('pointerdown', e => {
+      spawnRipple(e.clientX, e.clientY);
+      if (introStage !== 'landed') return;
+      let nearest = 0;
+      let bestDist = Infinity;
+      letterSpans.forEach((sp, i) => {
+        const r = sp.getBoundingClientRect();
+        const d = Math.abs(e.clientX - (r.left + r.width / 2));
+        if (d < bestDist) {
+          bestDist = d;
+          nearest = i;
+        }
+      });
+      catPhysics.perchedIndex = nearest;
+      catPhysics.jumpHeight = 32;
+      setCatState('excited', 0.8);
+    });
+
+    // Arrastar e soltar o gatinho em cima ou embaixo do texto
+    let clickBurst = 0;
+    let clickBurstTimer = null;
+
+    function startCatDrag(clientX, clientY) {
+      if (introStage !== 'landed') return;
+      catPhysics.isDragging = true;
+      catPhysics.dragOffsetX = clientX - catPhysics.x;
+      catPhysics.dragOffsetY = clientY - catPhysics.y;
+
+      clickBurst++;
+      clearTimeout(clickBurstTimer);
+      clickBurstTimer = setTimeout(() => { clickBurst = 0; }, 600);
+      if (clickBurst >= 3) {
+        setCatState('dizzy', 1.8);
+        clickBurst = 0;
+      } else {
+        setCatState('poked', 0.7);
+      }
+    }
+
+    function endCatDrag() {
+      if (!catPhysics.isDragging) return;
+      catPhysics.isDragging = false;
+
+      // Escolhe a letra mais próxima horizontalmente
+      let nearest = 0;
+      let bestDist = Infinity;
+      letterSpans.forEach((sp, i) => {
+        const r = sp.getBoundingClientRect();
+        const d = Math.abs(catPhysics.x - (r.left + r.width / 2));
+        if (d < bestDist) {
+          bestDist = d;
+          nearest = i;
+        }
+      });
+      catPhysics.perchedIndex = nearest;
+
+      // Decide se ele pousa EM CIMA ('top') ou EMBAIXO ('bottom') do texto
+      const titleRect = pressureTitle.getBoundingClientRect();
+      const titleMidY = titleRect.top + titleRect.height * 0.5;
+      catPhysics.perchSide = catPhysics.y > titleMidY ? 'bottom' : 'top';
+
+      catPhysics.jumpHeight = 20;
+      setCatState('excited', 0.8);
+      spawnRipple(catPhysics.x, catPhysics.y);
+    }
+
+    catHitbox.addEventListener('mousedown', e => {
+      e.stopPropagation();
+      startCatDrag(e.clientX, e.clientY);
+    });
+    window.addEventListener('mouseup', endCatDrag);
+
+    catHitbox.addEventListener('touchstart', e => {
+      e.stopPropagation();
+      const t = e.touches[0];
+      if (t) startCatDrag(t.clientX, t.clientY);
+    }, { passive: true });
+    window.addEventListener('touchend', endCatDrag);
+
+    // =========================================================================
+    // 6. HELPERS DE DESENHO VETORIAL 60 FPS
+    // =========================================================================
+    function drawSquircle(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+    }
+
+    // =========================================================================
+    // 7. LOOP PRINCIPAL UNIFICADO (60 FPS)
+    // =========================================================================
+    let lastTime = performance.now();
+    let waveClock = 0;
+
+    function mainLoop(now) {
+      const dt = Math.min(0.05, (now - lastTime) / 1000);
+      lastTime = now;
+      const t = now / 1000;
+
+      // Temporizador de estados transitórios
+      if (stateTimer > 0) {
+        stateTimer -= dt;
+        if (stateTimer <= 0) setCatState('idle');
+      }
+
+      // -----------------------------------------------------------------------
+      // A) Atualiza Tipografia TextPressure (HELLO!)
+      // -----------------------------------------------------------------------
+      const follow = 1 - Math.exp(-dt / 0.14);
+      smoothMouse.x += (cursor.x - smoothMouse.x) * follow;
+      smoothMouse.y += (cursor.y - smoothMouse.y) * follow;
+
+      const box = pressureContainer.getBoundingClientRect();
+      const inside = cursor.seen && cursor.x >= box.left && cursor.x <= box.right && cursor.y >= box.top && cursor.y <= box.bottom;
+      if (!inside) waveClock += dt;
+
+      while (ripples.length && now - ripples[0].start > RIPPLE_LIFE * 1000) ripples.shift();
+
+      const titleRect = pressureTitle.getBoundingClientRect();
+      const maxDist = Math.max(titleRect.width * 0.5, 1);
+      const spread = 1.0;
+
+      const letterMetrics = letterSpans.map((span, i) => {
+        const rect = span.getBoundingClientRect();
+        const center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+
+        let pressure = inside ? clamp01(1 - dist2D(smoothMouse, center) / maxDist) : 0;
+        const pos = (center.x - titleRect.left) / Math.max(titleRect.width, 1);
+        const idleWave = getIdlePressure(pos, waveClock, spread);
+        pressure = inside ? Math.max(pressure, idleWave * 0.35) : idleWave;
+
+        if (ripples.length) {
+          const swell = getRipplePressure(center, now, titleRect.width);
+          pressure = 1 - (1 - pressure) * (1 - swell);
+        }
+
+        const wdth = Math.round(25 + 126 * pressure);
+        const wght = Math.round(100 + 850 * pressure);
+        const slnt = (-10 * pressure).toFixed(2);
+        span.style.fontVariationSettings = `'wght' ${wght}, 'wdth' ${wdth}, 'slnt' ${slnt}`;
+
+        return { rect, center, pressure };
+      });
+
+      // -----------------------------------------------------------------------
+      // B) Coreografia de Entrada: Bolha/Poeira atrás -> Salto -> Pouso
+      // -----------------------------------------------------------------------
+      const R = Math.max(46, Math.min(68, window.innerWidth * 0.068));
+      const headH = R * 1.8;
+
+      introElapsed += dt;
+      if (introStage === 'waiting' && introElapsed > 0.35) {
+        // Estoura a animação de nuvem/bolha de poeira atrás do texto!
+        introStage = 'poof';
+        introElapsed = 0;
+        const m = letterMetrics[catPhysics.perchedIndex] || letterMetrics[0];
+        const spawnX = m ? m.center.x : titleRect.left + titleRect.width * 0.5;
+        const spawnY = titleRect.top + titleRect.height * 0.45;
+        catPhysics.x = spawnX;
+        catPhysics.y = spawnY;
+        spawnPoofCloud(spawnX, spawnY);
+      } else if (introStage === 'poof') {
+        // Pop-in elástico do gatinho surgindo do meio da nuvem atrás do texto
+        const p = Math.min(1, introElapsed / 0.38);
+        catPhysics.scaleMultiplier = 1 - Math.pow(1 - p, 3) * Math.cos(p * Math.PI * 1.5);
+        if (introElapsed > 0.42) {
+          introStage = 'emerging';
+          introElapsed = 0;
+          catPhysics.scaleMultiplier = 1;
+        }
+      } else if (introStage === 'emerging') {
+        const p = Math.min(1, introElapsed / 0.78);
+        const m = letterMetrics[catPhysics.perchedIndex] || letterMetrics[0];
+        const targetX = m ? m.center.x : titleRect.left + titleRect.width * 0.5;
+        const targetTopY = (m ? m.rect.top : titleRect.top) - headH * 0.44;
+        const startY = titleRect.top + titleRect.height * 0.45;
+
+        // Salto parabólico de trás do texto para o topo
+        const arc = Math.sin(p * Math.PI) * 95;
+        catPhysics.x += (targetX - catPhysics.x) * 0.16;
+        catPhysics.y = startY + (targetTopY - startY) * (1 - Math.pow(1 - p, 3)) - arc;
+
+        if (p > 0.48) {
+          catCanvas.style.zIndex = '25';
+        }
+        if (p >= 1) {
+          introStage = 'landed';
+          catHitbox.style.pointerEvents = 'auto';
+          onboardingCard.classList.add('is-visible');
+          spawnRipple(catPhysics.x, targetTopY + 30);
+          setCatState('excited', 0.9);
+        }
+      }
+
+      // -----------------------------------------------------------------------
+      // C) Física quando pousado no TOPO ou na BASE do texto
+      // -----------------------------------------------------------------------
+      if (introStage === 'landed' && !catPhysics.isDragging) {
+        const idx = Math.min(catPhysics.perchedIndex, letterMetrics.length - 1);
+        const m = letterMetrics[idx];
+        if (m) {
+          const targetX = m.center.x;
+          // Posiciona em cima ou embaixo da letra conforme perchSide
+          const targetY = catPhysics.perchSide === 'bottom'
+            ? m.rect.bottom + headH * 0.46 + catPhysics.jumpHeight
+            : m.rect.top - headH * 0.44 - catPhysics.jumpHeight;
+
+          catPhysics.x += (targetX - catPhysics.x) * 0.18;
+          catPhysics.y += (targetY - catPhysics.y) * 0.22;
+          catPhysics.jumpHeight *= 0.84;
+
+          // Inclinação surfando as letras vizinhas
+          const leftM = letterMetrics[Math.max(0, idx - 1)];
+          const rightM = letterMetrics[Math.min(letterMetrics.length - 1, idx + 1)];
+          const slope = (rightM.pressure - leftM.pressure) * 0.22;
+          catPhysics.waveSurfTilt += (slope - catPhysics.waveSurfTilt) * 0.15;
+        }
+      }
+
+      // Sincroniza hitbox interativa
+      catHitbox.style.left = `${catPhysics.x}px`;
+      catHitbox.style.top = `${catPhysics.y}px`;
+      catHitbox.style.width = `${R * 2.7}px`;
+      catHitbox.style.height = `${R * 2.5}px`;
+
+      // -----------------------------------------------------------------------
+      // D) Renderização Vetorial do Gatinho + Nuvem de Bolhas/Poeira (Poof)
+      // -----------------------------------------------------------------------
+      const dpr = window.devicePixelRatio || 1;
+      if (catCanvas.width !== window.innerWidth * dpr || catCanvas.height !== window.innerHeight * dpr) {
+        catCanvas.width = window.innerWidth * dpr;
+        catCanvas.height = window.innerHeight * dpr;
+      }
+
+      ctx.save();
+      ctx.scale(dpr, dpr);
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+      // Desenha partículas de poeira/bolha estilo encerramento de app
+      if (poofParticles.length > 0) {
+        poofParticles = poofParticles.filter(pt => {
+          pt.life += dt;
+          if (pt.life >= pt.maxLife) return false;
+          const prog = pt.life / pt.maxLife;
+          pt.x += pt.vx * dt * (1 - prog * 0.65);
+          pt.y += pt.vy * dt * (1 - prog * 0.65);
+
+          const curRadius = pt.radius * (0.45 + prog * 1.15);
+          const alpha = (1 - prog) * 0.88;
+
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, curRadius, 0, Math.PI * 2);
+          ctx.fillStyle = isDark
+            ? `rgba(226, 232, 240, ${alpha})`
+            : `rgba(255, 255, 255, ${alpha})`;
+          ctx.shadowColor = isDark ? 'rgba(56, 189, 248, 0.35)' : 'rgba(99, 102, 241, 0.22)';
+          ctx.shadowBlur = 12;
+          ctx.fill();
+          ctx.restore();
+          return true;
+        });
+      }
+
+      // Só desenha o gatinho após iniciar o 'poof'
+      if (introStage !== 'waiting') {
+        const dx = cursor.x - catPhysics.x;
+        const dy = cursor.y - catPhysics.y;
+        const force = Math.tanh(Math.hypot(dx, dy) / 220);
+        const angle = Math.atan2(dy, dx);
+
+        const targetEyeX = Math.cos(angle) * force * (R * 0.24);
+        const targetEyeY = Math.sin(angle) * force * (R * 0.18);
+
+        let targetScaleX = 1 - Math.sin(t * 2.4) * 0.018;
+        let targetScaleY = 1 + Math.sin(t * 2.4) * 0.024;
+        let targetOffsetY = Math.cos(t * 2.4) * 1.5;
+        let targetTilt = catPhysics.waveSurfTilt;
+        let targetEyeOpen = 1;
+        let targetEarL = Math.sin(t * 1.1) * 0.04;
+        let targetEarR = Math.sin(t * 1.1 + 0.6) * 0.04;
+        let targetMouthOpen = 0;
+
+        if (t > nextBlinkTime && currentState === 'idle') {
+          targetEyeOpen = 0.06;
+          if (t > nextBlinkTime + 0.14) nextBlinkTime = t + 2.6 + Math.random() * 3.2;
+        }
+
+        if (currentState === 'excited') {
+          targetScaleY = 1.07;
+          targetScaleX = 0.94;
+          targetEarL = -0.18;
+          targetEarR = 0.18;
+          targetMouthOpen = 0.45;
+        } else if (currentState === 'poked') {
+          targetScaleX = 1.15;
+          targetScaleY = 0.86;
+          targetEyeOpen = 0.14;
+        } else if (currentState === 'dizzy') {
+          targetTilt = Math.sin(t * 14) * 0.18;
+        } else if (currentState === 'error') {
+          targetTilt = Math.sin(t * 28) * 0.14;
+          targetEarL = 0.35;
+          targetEarR = -0.35;
+        } else if (currentState === 'listening') {
+          targetEarL = -0.22;
+          targetEarR = 0.22;
+          targetTilt = -0.07;
+        }
+
+        if (catPhysics.isDragging) {
+          targetScaleX = 0.92;
+          targetScaleY = 1.12;
+          targetTilt = Math.sin(t * 10) * 0.08;
+        }
+
+        const sm = 0.18;
+        anim.eyeX += (targetEyeX - anim.eyeX) * sm;
+        anim.eyeY += (targetEyeY - anim.eyeY) * sm;
+        anim.faceX += (targetEyeX * 0.42 - anim.faceX) * sm;
+        anim.faceY += (targetEyeY * 0.42 - anim.faceY) * sm;
+        anim.earX += (-targetEyeX * 0.25 - anim.earX) * sm;
+        anim.earY += (-targetEyeY * 0.20 - anim.earY) * sm;
+        anim.headScaleX += (targetScaleX - anim.headScaleX) * sm;
+        anim.headScaleY += (targetScaleY - anim.headScaleY) * sm;
+        anim.headOffsetY += (targetOffsetY - anim.headOffsetY) * sm;
+        anim.headTilt += (targetTilt - anim.headTilt) * sm;
+        anim.eyeOpen += (targetEyeOpen - anim.eyeOpen) * 0.35;
+        anim.earAngleL += (targetEarL - anim.earAngleL) * sm;
+        anim.earAngleR += (targetEarR - anim.earAngleR) * sm;
+        anim.mouthOpen += (targetMouthOpen - anim.mouthOpen) * 0.32;
+
+        // Cor escolhida nas bolinhas sempre aplicada (exceto erro)
+        let accentColor = isDark ? ACCENTS[accentIndex].dark : ACCENTS[accentIndex].light;
+        if (currentState === 'error') accentColor = '#FF3B30';
+
+        const headFill = isDark ? '#242630' : '#FFFFFF';
+        const headStroke = isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.08)';
+        const strokeColor = isDark ? '#F5F5F7' : '#1D1D1F';
+
+        ctx.translate(catPhysics.x, catPhysics.y + anim.headOffsetY);
+        ctx.rotate(anim.headTilt);
+        ctx.scale(
+          anim.headScaleX * catPhysics.scaleMultiplier,
+          anim.headScaleY * catPhysics.scaleMultiplier
+        );
+
+        const headW = R * 2.15;
+
+        // 1. Orelhas
+        [-1, 1].forEach((side, idx) => {
+          ctx.save();
+          const earAng = idx === 0 ? anim.earAngleL : anim.earAngleR;
+          ctx.translate(side * R * 0.62 + anim.earX, -headH * 0.42 + anim.earY);
+          ctx.rotate(side * 0.32 + earAng);
+
+          ctx.beginPath();
+          ctx.moveTo(-R * 0.34, R * 0.15);
+          ctx.quadraticCurveTo(0, -R * 0.66, R * 0.34, R * 0.15);
+          ctx.closePath();
+          ctx.fillStyle = accentColor;
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.moveTo(-R * 0.18, R * 0.10);
+          ctx.quadraticCurveTo(0, -R * 0.36, R * 0.18, R * 0.10);
+          ctx.closePath();
+          ctx.fillStyle = isDark ? 'rgba(255,255,255,0.24)' : 'rgba(255,255,255,0.58)';
+          ctx.fill();
+          ctx.restore();
+        });
+
+        // 2. Cabeça Squircle
+        drawSquircle(ctx, -headW / 2, -headH / 2, headW, headH, R * 0.78);
+        ctx.fillStyle = headFill;
+        ctx.shadowColor = 'rgba(0,0,0,0.16)';
+        ctx.shadowBlur = 18;
+        ctx.shadowOffsetY = 8;
+        ctx.fill();
+        ctx.shadowColor = 'transparent';
+        ctx.lineWidth = 1.8;
+        ctx.strokeStyle = headStroke;
+        ctx.stroke();
+
+        // 3. Bochechas
+        ctx.fillStyle = isDark ? 'rgba(240, 101, 149, 0.26)' : 'rgba(255, 107, 107, 0.24)';
+        [-1, 1].forEach(side => {
+          ctx.beginPath();
+          ctx.ellipse(side * R * 0.56 + anim.faceX, R * 0.14 + anim.faceY, R * 0.18, R * 0.11, 0, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        // 4. Olhos (Sem pontinhos escuros no modo escuro!)
+        [-1, 1].forEach(side => {
+          const ex = side * R * 0.42 + anim.eyeX;
+          const ey = -R * 0.06 + anim.eyeY;
+          ctx.save();
+          ctx.translate(ex, ey);
+
+          if (currentState === 'excited') {
+            ctx.beginPath();
+            ctx.arc(0, R * 0.06, R * 0.16, Math.PI * 1.15, Math.PI * 1.85);
+            ctx.lineWidth = Math.max(2.2, R * 0.075);
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = strokeColor;
+            ctx.stroke();
+          } else if (currentState === 'dizzy') {
+            ctx.beginPath();
+            ctx.moveTo(-side * R * 0.1, -R * 0.1);
+            ctx.lineTo(side * R * 0.1, 0);
+            ctx.lineTo(-side * R * 0.1, R * 0.1);
+            ctx.lineWidth = Math.max(2.2, R * 0.075);
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = strokeColor;
+            ctx.stroke();
+          } else {
+            const ew = R * 0.22;
+            const eh = Math.max(2.5, R * 0.36 * anim.eyeOpen);
+            drawSquircle(ctx, -ew / 2, -eh / 2, ew, eh, ew / 2);
+            ctx.fillStyle = strokeColor;
+            ctx.fill();
+
+            // Brilho ocular apenas no modo claro para evitar pontinhos escuros no modo escuro
+            if (anim.eyeOpen > 0.4 && !isDark) {
+              ctx.beginPath();
+              ctx.arc(-ew * 0.15 + anim.eyeX * 0.12, -eh * 0.22, R * 0.055, 0, Math.PI * 2);
+              ctx.fillStyle = '#FFFFFF';
+              ctx.fill();
+            }
+          }
+          ctx.restore();
+        });
+
+        // 5. Nariz e Boca
+        const fx = anim.faceX;
+        const fy = anim.faceY;
+        ctx.beginPath();
+        ctx.moveTo(fx - R * 0.09, fy + R * 0.06);
+        ctx.lineTo(fx + R * 0.09, fy + R * 0.06);
+        ctx.lineTo(fx, fy + R * 0.14);
+        ctx.closePath();
+        ctx.fillStyle = accentColor;
+        ctx.fill();
+
+        if (anim.mouthOpen > 0.1) {
+          ctx.beginPath();
+          ctx.ellipse(fx, fy + R * 0.19, R * 0.14 * anim.mouthOpen, R * 0.15 * anim.mouthOpen, 0, 0, Math.PI * 2);
+          ctx.fillStyle = accentColor;
+          ctx.fill();
+        } else {
+          ctx.beginPath();
+          ctx.moveTo(fx - R * 0.16, fy + R * 0.14);
+          ctx.quadraticCurveTo(fx - R * 0.08, fy + R * 0.23, fx, fy + R * 0.14);
+          ctx.quadraticCurveTo(fx + R * 0.08, fy + R * 0.23, fx + R * 0.16, fy + R * 0.14);
+          ctx.lineWidth = Math.max(1.6, R * 0.06);
+          ctx.lineCap = 'round';
+          ctx.strokeStyle = strokeColor;
+          ctx.stroke();
+        }
+
+        // 6. Bigodes
+        ctx.lineWidth = Math.max(1.4, R * 0.045);
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.35)';
+        [-1, 1].forEach(side => {
+          [0, 1].forEach(row => {
+            const wy = fy + R * (0.06 + row * 0.14);
+            ctx.beginPath();
+            ctx.moveTo(fx + side * R * 0.85, wy);
+            ctx.lineTo(fx + side * R * 1.16, wy + (row === 0 ? -1.8 : 1.8));
+            ctx.stroke();
+          });
+        });
+
+        // 7. Patinhas apoiadas no topo (quando em cima) ou segurando na borda inferior (quando embaixo)
+        if (introStage === 'landed' && !catPhysics.isDragging) {
+          ctx.fillStyle = headFill;
+          ctx.strokeStyle = headStroke;
+          ctx.lineWidth = 1.6;
+          const pawY = catPhysics.perchSide === 'bottom' ? -headH * 0.44 : headH * 0.44;
+          [-1, 1].forEach(side => {
+            ctx.beginPath();
+            ctx.ellipse(side * R * 0.46, pawY, R * 0.22, R * 0.14, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+          });
+        }
+      }
+
+      ctx.restore();
+      requestAnimationFrame(mainLoop);
+    }
+
+    window.onload = () => {
+      startOnboardingSequence();
+      requestAnimationFrame(mainLoop);
+    };
+  </script>
+  <script type="module" src="/src/welcome.ts"></script>
+</body>
+</html>

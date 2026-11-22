@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <!-- 
+    CUBEE NEO - ÍCONE OFICIAL
+    Gerado com base nas proporções exatas de cubee.avatar.json
+    - Width/Height: Proporção 1:1
+    - Roundness: 0.7326
+    - Eye Gap: 1
+    - Eye ShiftY: -0.0731
+    - Cores: Indigo-Purple Theme (Midnight Abyss & Deep Royal Violet vibes)
+  -->
+  <defs>
+    <!-- Sombra projetada para dar destaque ao ícone e aspecto 3D na interface -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#020305" flood-opacity="0.7"/>
+      <feDropShadow dx="0" dy="32" stdDeviation="40" flood-color="#6d28d9" flood-opacity="0.35"/>
+    </filter>
+
+    <!-- Glow emissivo para o visor OLED (olhos) -->
+    <filter id="eyeGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="12" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- 1. Gradiente da Extrusão 3D (Chassi inferior) -->
+    <linearGradient id="depthGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#040714"/>
+      <stop offset="45%" stop-color="#0b1536"/>
+      <stop offset="100%" stop-color="#6d28d9"/>
+    </linearGradient>
+
+    <!-- 2. Gradiente Principal do Corpo Cúbico (Azul Noturno para Roxo Vibrante) -->
+    <linearGradient id="bodyGrad" x1="15%" y1="10%" x2="85%" y2="90%">
+      <stop offset="0%" stop-color="#0b1536"/>
+      <stop offset="52%" stop-color="#1e1b4b"/>
+      <stop offset="100%" stop-color="#6d28d9"/>
+    </linearGradient>
+
+    <!-- 3. Brilho Volumétrico Superior (Highlight simulando vidro chanfrado) -->
+    <radialGradient id="topHighlight" cx="30%" cy="25%" r="75%" fx="20%" fy="15%">
+      <stop offset="0%" stop-color="#c084fc" stop-opacity="0.45"/>
+      <stop offset="45%" stop-color="#3b82f6" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#050816" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- 4. Rim Light Inferior (Luz de contorno roxa que reflete na base) -->
+    <linearGradient id="bottomRim" x1="0%" y1="50%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#6d28d9" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#a855f7" stop-opacity="0.65"/>
+    </linearGradient>
+
+    <!-- 5. Gradiente da Borda Especular do Vidro -->
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#93c5fd" stop-opacity="0.75"/>
+      <stop offset="45%" stop-color="#8b5cf6" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#a855f7" stop-opacity="1"/>
+    </linearGradient>
+  </defs>
+
+  <g transform="translate(0, 4)">
+    <!-- CAMADA 1: Extrusão / Profundidade 3D (Equivalente ao depthShift do código original) -->
+    <!-- Deslocado no eixo Y para simular a perspectiva e o 'depth: 171.95' -->
+    <rect x="56" y="96" width="400" height="400" rx="146.5" fill="url(#depthGrad)" filter="url(#shadow)"/>
+
+    <!-- CAMADA 2: Corpo Principal (Rosto / Squircle Frontal) -->
+    <!-- Subindo -24px para criar o volume em relação ao chassi traseiro -->
+    <g transform="translate(0, -24)">
+      
+      <!-- Fundo Sólido Frontal -->
+      <rect x="56" y="76" width="400" height="400" rx="146.5" fill="url(#bodyGrad)"/>
+
+      <!-- Adicionando Reflexo de Vidro Volumétrico Superior -->
+      <rect x="56" y="76" width="400" height="400" rx="146.5" fill="url(#topHighlight)"/>
+
+      <!-- Adicionando Luz de Contorno Inferior (Rim Light) -->
+      <rect x="56" y="76" width="400" height="400" rx="146.5" fill="url(#bottomRim)"/>
+
+      <!-- CAMADA 3: Visor OLED (Olhos Verticais em Cápsula) -->
+      <!-- O cálculo matemático (shiftY: -0.0731) posiciona os olhos levemente acima do centro geométrico -->
+      <g filter="url(#eyeGlow)">
+        <!-- Olho Esquerdo -->
+        <rect x="169" y="211" width="42" height="72" rx="21" fill="#f3e8ff"/>
+        <!-- Olho Direito -->
+        <rect x="301" y="211" width="42" height="72" rx="21" fill="#f3e8ff"/>
+      </g>
+      
+      <!-- Núcleos de luz branca (simula intensidade máxima de brilho da tela no centro do olho) -->
+      <rect x="176" y="218" width="28" height="58" rx="14" fill="#ffffff" opacity="0.95"/>
+      <rect x="308" y="218" width="28" height="58" rx="14" fill="#ffffff" opacity="0.95"/>
+
+      <!-- CAMADA 4: Borda Especular / Stroke Externo -->
+      <!-- Contorno com stroke-width dinâmico criando brilhos na moldura (ciano -> roxo) -->
+      <rect x="56" y="76" width="400" height="400" rx="146.5" fill="none" stroke="url(#borderGrad)" stroke-width="6.5"/>
+      
+      <!-- Detalhe extra: Pequeno brilho / chanfro interno na extremidade superior esquerda -->
+      <path d="M 120 98 C 170 82, 220 78, 256 78" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" opacity="0.3"/>
+    </g>
+  </g>
+</svg>

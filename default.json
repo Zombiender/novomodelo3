@@ -1,0 +1,57 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Permissões do assistente",
+  "windows": [
+    "main",
+    "boas-vindas"
+  ],
+  "permissions": [
+    "core:default",
+    "core:event:default",
+    "core:webview:allow-create-webview-window",
+    "core:window:allow-set-ignore-cursor-events",
+    "core:window:allow-cursor-position",
+    "core:window:allow-outer-position",
+    "core:window:allow-scale-factor",
+    "core:window:allow-set-position",
+    "core:window:allow-set-focus",
+    "core:window:allow-set-title",
+    "core:window:allow-current-monitor",
+    "core:window:allow-hide",
+    "core:window:allow-show",
+    "core:window:allow-minimize",
+    "clipboard-manager:allow-write-text",
+    "fs:allow-exists",
+    "fs:allow-read-dir",
+    "fs:allow-mkdir",
+    "fs:allow-rename",
+    "fs:scope-desktop-recursive",
+    {
+      "identifier": "http:default",
+      "allow": [
+        {
+          "url": "https://generativelanguage.googleapis.com/*"
+        },
+        {
+          "url": "https://www.google.com/*"
+        },
+        {
+          "url": "https://api.spotify.com/*"
+        },
+        {
+          "url": "https://accounts.spotify.com/*"
+        },
+        {
+          "url": "http://localhost:5000/*"
+        },
+        {
+          "url": "https://lrclib.net/*"
+        },
+        {
+          "url": "https://itunes.apple.com/*"
+        }
+      ]
+    }
+  ]
+}
